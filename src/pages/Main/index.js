@@ -10,6 +10,7 @@ function Main() {
   const [newRepo, setNewRepo] = useState('');
   const [repositories, setRepositories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const repo = localStorage.getItem('repositories');
@@ -29,15 +30,28 @@ function Main() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const response = await api.get(`/repos/${newRepo}`);
 
-    const data = {
-      name: response.data.full_name,
-    };
+    try {
+      if (repositories.find((r) => r.name === newRepo)) {
+        throw Error('Repositório duplicado');
+      }
+      await api.get(`/repos/${newRepo}`);
 
-    setRepositories([...repositories, data]);
-    setNewRepo('');
-    setLoading(false);
+      setRepositories([
+        ...repositories,
+        {
+          name: newRepo,
+        },
+      ]);
+
+      setNewRepo('');
+
+      setLoading(false);
+      setNotFound(false);
+    } catch (error) {
+      setNotFound(true);
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,14 +60,14 @@ function Main() {
         <FaGithubAlt className="icone" />
         Repositórios
       </h1>
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit} notFound={notFound}>
         <input
           type="text"
           placeholder="Adicionar repositório"
           onChange={handleInputChange}
           value={newRepo}
         />
-        <SubmitButton loading={loading}>
+        <SubmitButton loading={loading ? 1 : 0} notFound={notFound}>
           {loading ? (
             <FaSpinner color="#FFF" size={14} />
           ) : (
